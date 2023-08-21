@@ -1,0 +1,302 @@
+---
+title: 'Chia Han Lee & Darina Kamikazi Final_project '
+output:
+  word_document: default
+  pdf_document: default
+date: "2023-02-28"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+
+```
+
+```{r}
+# load in packages
+library(tidyverse) # utility functions
+library(rpart) # for regression trees
+library(randomForest) # for random forests
+library(caret)
+library(dummy) # one-hot encoding 
+library(nnet) # simple neural network package
+library(modelr)
+```
+
+```{r}
+# read the data 
+den_data <- read.csv("single_family_home_values.csv")
+```
+
+
+```{r}
+or_data <- nrow(den_data)
+```
+
+```{r}
+# drops missing values 
+den_data <- na.omit(den_data)
+
+# checking the presence of Null value
+sapply(den_data, function(x) sum(is.na(x)))
+```
+
+```{r}
+af_data <- nrow(den_data)
+compare <- c(or_data,af_data)
+
+barplot(compare, main="Original data Vs. Filtered data", col=c("lightblue","pink"),names.arg = c("original","filtered"), ylab="rows")
+```
+
+```{r}
+# examine data
+glimpse(den_data, width = 60)
+```
+
+```{r}
+# summary of the raw data
+summary(den_data)
+```
+
+```{r}
+
+# split our data so that 30% is in the test set and 70% is in the training set
+splitData <- resample_partition(den_data, c(test = 0.3, train = 0.7))
+
+# how many cases are in test & training set? 
+lapply(splitData, dim)
+```
+
+
+```{r}
+# fit a random forest model to our training set
+fitRandomForest <- randomForest(estimated_value ~ rooms + bedrooms + bathrooms + lotSize + squareFootage +
+             yearBuilt + lastSaleAmount + priorSaleAmount, data = splitData$train)
+
+randomForest::varImpPlot(fitRandomForest,
+                         sort=FALSE,
+                         main="Variable Importance Plot")
+```
+
+```{r}
+# accuracy before removing the outliers
+# get the mean average error for our new model, based on our test data
+mae(model = fitRandomForest, data = splitData$test)
+```
+
+
+```{r}
+#Attribute - lotSize
+par(mfrow=c(1,2))
+boxplot(den_data$lotSize, col = "pink", main="With Outliers") #Attribute with Outliers
+#Removing outliers in lotSize attribute
+p75 = quantile(den_data$lotSize,0.75, na.rm = TRUE)
+p25 = quantile(den_data$lotSize,0.25, na.rm = TRUE)
+# print(p75)
+# print(p25)
+iqr = p75-p25
+# print(head(is.na(den_data$lotSize)))
+den_data$lotSize = ifelse(den_data$lotSize<p25-1.5*iqr,ave(den_data$lotSize, FUN = function(x) p25-1.5*iqr),den_data$lotSize)
+den_data$lotSize = ifelse(den_data$lotSize>p75+1.5*iqr,ave(den_data$lotSize, FUN = function(x) p75+1.5*iqr),den_data$lotSize)
+boxplot(den_data$lotSize, col ="lightblue", main="Without Outliers") # Attribute without outliers
+summary(den_data$lotSize)
+```
+```{r}
+#Attribute - bedrooms
+par(mfrow=c(1,2))
+boxplot(den_data$bedrooms, col = "pink", main="With Outliers") #Attribute with Outliers
+#Removing outliers in bedrooms attribute
+p75 = quantile(den_data$bedrooms,0.75, na.rm = TRUE)
+p25 = quantile(den_data$bedrooms,0.25, na.rm = TRUE)
+# print(p75)
+# print(p25)
+iqr = p75-p25
+# print(head(is.na(den_data$bedrooms)))
+den_data$bedrooms = ifelse(den_data$bedrooms<p25-1.5*iqr,ave(den_data$bedrooms, FUN = function(x) p25-1.5*iqr),den_data$bedrooms)
+den_data$bedrooms = ifelse(den_data$bedrooms>p75+1.5*iqr,ave(den_data$bedrooms, FUN = function(x) p75+1.5*iqr),den_data$bedrooms)
+boxplot(den_data$bedrooms, col ="lightblue", main="Without Outliers") # Attribute without outliers
+summary(den_data$bedrooms)
+```
+
+```{r}
+#Attribute - bathrooms
+par(mfrow=c(1,2))
+boxplot(den_data$bathrooms, col = "pink", main="With Outliers") #Attribute with Outliers
+#Removing outliers in bathrooms attribute
+p75 = quantile(den_data$bathrooms,0.75, na.rm = TRUE)
+p25 = quantile(den_data$bathrooms,0.25, na.rm = TRUE)
+# print(p75)
+# print(p25)
+iqr = p75-p25
+# print(head(is.na(den_data$bathrooms)))
+den_data$bathrooms = ifelse(den_data$bathrooms<p25-1.5*iqr,ave(den_data$bathrooms, FUN = function(x) p25-1.5*iqr),den_data$bathrooms)
+den_data$bathrooms = ifelse(den_data$bathrooms>p75+1.5*iqr,ave(den_data$bathrooms, FUN = function(x) p75+1.5*iqr),den_data$bathrooms)
+boxplot(den_data$bathrooms, col ="lightblue", main="Without Outliers") # Attribute without outliers
+summary(den_data$bathrooms)
+```
+
+```{r}
+#Attribute - rooms
+par(mfrow=c(1,2))
+boxplot(den_data$rooms, col = "pink", main="With Outliers") #Attribute with Outliers
+#Removing outliers in rooms attribute
+p75 = quantile(den_data$rooms,0.75, na.rm = TRUE)
+p25 = quantile(den_data$rooms,0.25, na.rm = TRUE)
+# print(p75)
+# print(p25)
+iqr = p75-p25
+# print(head(is.na(den_data$rooms)))
+den_data$rooms = ifelse(den_data$rooms<p25-1.5*iqr,ave(den_data$rooms, FUN = function(x) p25-1.5*iqr),den_data$rooms)
+den_data$rooms = ifelse(den_data$rooms>p75+1.5*iqr,ave(den_data$rooms, FUN = function(x) p75+1.5*iqr),den_data$rooms)
+boxplot(den_data$rooms, col ="lightblue", main="Without Outliers") # Attribute without outliers
+summary(den_data$rooms)
+```
+
+```{r}
+#Attribute - squareFootage
+par(mfrow=c(1,2))
+boxplot(den_data$squareFootage, col = "pink", main="With Outliers") #Attribute with Outliers
+#Removing outliers in squareFootage attribute
+p75 = quantile(den_data$squareFootage,0.75, na.rm = TRUE)
+p25 = quantile(den_data$squareFootage,0.25, na.rm = TRUE)
+# print(p75)
+# print(p25)
+iqr = p75-p25
+# print(head(is.na(den_data$squareFootage)))
+den_data$squareFootage = ifelse(den_data$squareFootage<p25-1.5*iqr,ave(den_data$squareFootage, FUN = function(x) p25-1.5*iqr),den_data$squareFootage)
+den_data$squareFootage = ifelse(den_data$squareFootage>p75+1.5*iqr,ave(den_data$squareFootage, FUN = function(x) p75+1.5*iqr),den_data$squareFootage)
+boxplot(den_data$squareFootage, col ="lightblue", main="Without Outliers") # Attribute without outliers
+summary(den_data$squareFootage)
+```
+
+```{r}
+#Attribute - lastSaleAmount
+par(mfrow=c(1,2))
+boxplot(den_data$lastSaleAmount, col = "pink", main="With Outliers") #Attribute with Outliers
+#Removing outliers in lastSaleAmount attribute
+p75 = quantile(den_data$lastSaleAmount,0.75, na.rm = TRUE)
+p25 = quantile(den_data$lastSaleAmount,0.25, na.rm = TRUE)
+# print(p75)
+# print(p25)
+iqr = p75-p25
+# print(head(is.na(den_data$lastSaleAmount)))
+den_data$lastSaleAmount = ifelse(den_data$lastSaleAmount<p25-1.5*iqr,ave(den_data$lastSaleAmount, FUN = function(x) p25-1.5*iqr),den_data$lastSaleAmount)
+den_data$lastSaleAmount = ifelse(den_data$lastSaleAmount>p75+1.5*iqr,ave(den_data$lastSaleAmount, FUN = function(x) p75+1.5*iqr),den_data$lastSaleAmount)
+boxplot(den_data$lastSaleAmount, col ="lightblue", main="Without Outliers") # Attribute without outliers
+summary(den_data$lastSaleAmount)
+```
+
+```{r}
+#Attribute - priorSaleAmount
+par(mfrow=c(1,2))
+boxplot(den_data$priorSaleAmount, col = "pink", main="With Outliers") #Attribute with Outliers
+#Removing outliers in priorSaleAmount attribute
+p75 = quantile(den_data$priorSaleAmount,0.75, na.rm = TRUE)
+p25 = quantile(den_data$priorSaleAmount,0.25, na.rm = TRUE)
+# print(p75)
+# print(p25)
+iqr = p75-p25
+# print(head(is.na(den_data$priorSaleAmount)))
+den_data$priorSaleAmount = ifelse(den_data$priorSaleAmount<p25-1.5*iqr,ave(den_data$priorSaleAmount, FUN = function(x) p25-1.5*iqr),den_data$priorSaleAmount)
+den_data$priorSaleAmount = ifelse(den_data$priorSaleAmount>p75+1.5*iqr,ave(den_data$priorSaleAmount, FUN = function(x) p75+1.5*iqr),den_data$priorSaleAmount)
+boxplot(den_data$priorSaleAmount, col ="lightblue", main="Without Outliers") # Attribute without outliers
+summary(den_data$priorSaleAmount)
+```
+
+```{r}
+#Attribute - estimated_value
+par(mfrow=c(1,2))
+boxplot(den_data$estimated_value, col = "pink", main="With Outliers") #Attribute with Outliers
+#Removing outliers in estimated_value attribute
+p75 = quantile(den_data$estimated_value,0.75, na.rm = TRUE)
+p25 = quantile(den_data$estimated_value,0.25, na.rm = TRUE)
+# print(p75)
+# print(p25)
+iqr = p75-p25
+# print(head(is.na(den_data$estimated_value)))
+den_data$estimated_value = ifelse(den_data$estimated_value<p25-1.5*iqr,ave(den_data$estimated_value, FUN = function(x) p25-1.5*iqr),den_data$estimated_value)
+den_data$estimated_value = ifelse(den_data$estimated_value>p75+1.5*iqr,ave(den_data$estimated_value, FUN = function(x) p75+1.5*iqr),den_data$estimated_value)
+boxplot(den_data$estimated_value, col ="lightblue", main="Without Outliers") # Attribute without outliers
+summary(den_data$estimated_value)
+```
+
+```{r}
+# summary after removing outliers
+summary(den_data)
+```
+
+
+```{r}
+# checking the format of the date
+prior_date = den_data$priorSaleDate
+last_date = den_data$lastSaleDate
+head(prior_date)
+head(last_date)
+```
+
+```{r}
+# make the priorsaledate into year month and date independently
+datetxt <- den_data$priorSaleDate
+datetxt <- as.Date(datetxt,format="%Y-%m-%d")
+df <- data.frame(pr_day = as.numeric(format(datetxt, format = "%d")),
+                 pr_month = as.numeric(format(datetxt, format = "%m")),
+                 pr_year = as.numeric(format(datetxt, format = "%Y")))
+head(df)
+den_data = cbind(df,subset(den_data,select = -c(priorSaleDate)))
+head(den_data)
+```
+
+```{r}
+# make the lastsaledate into year month and date independently
+datetxt <- den_data$lastSaleDate
+datetxt <- as.Date(datetxt,format="%Y-%m-%d")
+df <- data.frame(ls_day = as.numeric(format(datetxt, format = "%d")),
+                 ls_month = as.numeric(format(datetxt, format = "%m")),
+                 ls_year = as.numeric(format(datetxt, format = "%Y")))
+head(df)
+den_data = cbind(df,subset(den_data,select = -c(lastSaleDate)))
+head(den_data)
+```
+
+
+```{r}
+barplot(table(den_data$pr_day), main="PriorSaleDates Vs. Houses Sold", col="lightyellow",xlab = "Dates", ylab="Houses Sold")
+
+barplot(table(den_data$ls_day), main="LastSaleDates Vs. Houses Sold", col="lightyellow",xlab = "Dates", ylab="Houses Sold")
+```
+
+```{r}
+barplot(table(den_data$pr_month), main="PriorSaleMonths Vs. Houses Sold", col="pink",xlab = "Months", ylab="Houses Sold")
+barplot(table(den_data$ls_month), main="LastSaleMonths Vs. Houses Sold", col="pink",xlab = "Months", ylab="Houses Sold")
+```
+
+```{r}
+barplot(table(den_data$pr_year), main="PriorSaleYears Vs. Houses Sold", col="lightblue",xlab = "Years", ylab="Houses Sold")
+barplot(table(den_data$ls_year), main="LastSaleYears Vs. Houses Sold", col="lightblue",xlab = "Years", ylab="Houses Sold")
+```
+
+```{r}
+# split our data so that 30% is in the test set and 70% is in the training set
+splitData <- resample_partition(den_data, c(test = 0.3, train = 0.7))
+
+# how many cases are in test & training set? 
+lapply(splitData, dim)
+```
+
+```{r}
+# fit a random forest model to our training set
+fitRandomForest <- randomForest(estimated_value ~ rooms + bedrooms + bathrooms + lotSize + squareFootage +
+             yearBuilt + lastSaleAmount + priorSaleAmount, data = splitData$train)
+
+randomForest::varImpPlot(fitRandomForest,
+                         sort=FALSE,
+                         main="Variable Importance Plot")
+```
+
+```{r}
+# get the mean average error for our new model, based on our test data
+mae(model = fitRandomForest, data = splitData$test)
+```
+
